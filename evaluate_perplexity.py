@@ -63,6 +63,19 @@ def evaluate():
         if (i + 1) % 10 == 0:
             percent = (i + 1) / total * 100
             print(f"\rProgreso: {i + 1}/{total} ({percent:.1f}%)", end="", flush=True)
+        if (i + 1) % 100 == 0:
+            precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+            recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+            f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+            accuracy = (TP + TN) / total
+            print("\n" + "=" * 50)
+            print("RESULTADOS PARCIALES")
+            print("=" * 50)
+            print(f"TP: {TP}, FP: {FP}, FN: {FN}, TN: {TN}")
+            print(f"Precision:  {precision:.4f}")
+            print(f"Recall:     {recall:.4f}")
+            print(f"F1-score:   {f1:.4f}")
+            print(f"Accuracy:   {accuracy:.4f}")
     
     print("\n")  # Nueva línea después del progreso
     
