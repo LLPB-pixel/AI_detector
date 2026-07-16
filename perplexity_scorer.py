@@ -62,12 +62,15 @@ class PerplexityScorer:
         """Carga el tokenizador y modelo."""
         from transformers import GPT2LMHeadModel, GPT2TokenizerFast
         
+        print(f"  Cargando tokenizador '{self.model_name}'...")
         self.tokenizer = GPT2TokenizerFast.from_pretrained(self.model_name)
+        print(f"  Cargando modelo '{self.model_name}' en {self.device} (puede tardar)...")
         self.model = GPT2LMHeadModel.from_pretrained(
             self.model_name, 
             low_cpu_mem_usage=True
         ).to(self.device)
         self.model.eval()
+        print("  Modelo cargado correctamente.")
     
     def score(self, text: str) -> float:
         """

@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from enum import Enum
 import statistics
 
-from .perplexity_scorer import PerplexityScorer
+from perplexity_scorer import PerplexityScorer
 
 
 class DetectionResult(Enum):

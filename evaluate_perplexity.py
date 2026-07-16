@@ -1,19 +1,23 @@
 """
 Evaluación simple del detector de IA usando perplejidad.
-Carga el dataset Ateeqq/AI-and-Human-Generated-Text y calcula precision y recall.
+Carga el dataset Ateeqq/AI-and-Human-Generated-Text desde Hugging Face.
 """
 
 from datasets import load_dataset
-from detector_ia import AITextDetector
+from ai_detector import AITextDetector
 
 
 def evaluate():
-    # Cargar dataset
-    print("Cargando dataset...")
+    # Cargar dataset de Hugging Face
+    print("Cargando dataset Ateeqq/AI-and-Human-Generated-Text...")
     dataset = load_dataset("Ateeqq/AI-and-Human-Generated-Text")
     
-    # Obtener los datos de entrenamiento
+    # Guardar dataset localmente en ./data/
+    print("Guardando dataset en ./data/ ...")
+    dataset.save_to_disk("./data/ai_human_text")
+    
     train_data = dataset["train"]
+    print(f"Dataset cargado: {len(train_data)} muestras\n")
     
     # Crear detector
     print("Inicializando detector...")
@@ -29,21 +33,22 @@ def evaluate():
     
     # Iterar sobre el dataset
     print(f"Evaluando {total} muestras...")
+    print("Progreso: ", end="", flush=True)
+    
     for i, item in enumerate(train_data):
-        text = item["text"]
-        true_label = item["label"].lower()  # human o ai
+        text = item["abstract"]
+        true_label = "ai" if item["label"] == 1 else "human"
         
         # Analizar con el detector
         result = detector.analyze(text)
         predicted = result.result.value  # human, ai, o uncertain
         
-        # Tratar uncertain como humano o AI? Para simplificar, lo contamos como error
-        # Opción: considerar uncertain como humano
+        # Tratar uncertain como humano
         if predicted == "uncertain":
             predicted = "human"
         
         # Actualizar contadores
-        if true_label == "ai":
+        if true_label == "ai":  # label 1 = AI, 0 = human
             if predicted == "ai":
                 TP += 1
             else:
@@ -54,9 +59,12 @@ def evaluate():
             else:
                 TN += 1
         
-        # Mostrar progreso cada 100 muestras
-        if (i + 1) % 100 == 0:
-            print(f"  Proceso: {i + 1}/{total}")
+        # Mostrar progreso cada 10 muestras
+        if (i + 1) % 10 == 0:
+            percent = (i + 1) / total * 100
+            print(f"\rProgreso: {i + 1}/{total} ({percent:.1f}%)", end="", flush=True)
+    
+    print("\n")  # Nueva línea después del progreso
     
     # Calcular métricas
     precision = TP / (TP + FP) if (TP + FP) > 0 else 0

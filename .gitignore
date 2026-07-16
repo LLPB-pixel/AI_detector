@@ -1,10 +1,13 @@
 requirements.txt
 README.md
 
+# Data
+data/
+
 # Python
 __pycache__/
 *.py[cod]
-
+*.pyc[cod]
 # Virtual environments
 venv/
 .venv/
