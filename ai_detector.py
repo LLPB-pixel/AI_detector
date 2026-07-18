@@ -21,7 +21,10 @@ from dataclasses import dataclass
 from enum import Enum
 import statistics
 
-from perplexity_scorer import PerplexityScorer
+try:
+    from .perplexity_scorer import PerplexityScorer
+except (ImportError, ValueError):
+    from perplexity_scorer import PerplexityScorer
 
 
 class DetectionResult(Enum):
@@ -79,7 +82,7 @@ class AITextDetector:
     y determinar si probablemente fueron generados por IA.
     
     Args:
-        model_name: Nombre del modelo para calcular perplejidad (default: "gpt2")
+        model_name: Nombre del modelo para calcular perplejidad (default: "distilgpt2")
         device: Dispositivo a usar ("cuda", "cpu", None para auto-detectar)
         ai_threshold: Umbral de perplejidad para considerar AI (default: 50.0)
         human_threshold: Umbral inferior para texto humano (default: 10.0)
@@ -94,7 +97,7 @@ class AITextDetector:
     
     def __init__(
         self,
-        model_name: str = "gpt2",
+        model_name: str = "distilgpt2",
         device: Optional[str] = None,
         ai_threshold: float = 50.0,
         human_threshold: float = 10.0,

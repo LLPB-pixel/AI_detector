@@ -17,7 +17,7 @@ class PerplexityScorer:
     Calculador de perplexity usando modelos de lenguaje para detección de IA.
     
     Args:
-        model_name: Nombre del modelo a usar (default: "gpt2")
+        model_name: Nombre del modelo a usar (default: "distilgpt2" - versión ligera de GPT2)
         device: Dispositivo a usar ("cuda", "cpu", None para auto-detectar)
         max_length: Longitud máxima de tokens a procesar (default: 512)
         batch_size: Tamaño de batch para procesamiento (default: 1)
@@ -25,7 +25,7 @@ class PerplexityScorer:
     
     def __init__(
         self, 
-        model_name: str = "gpt2", 
+        model_name: str = "distilgpt2", 
         device: Optional[str] = None,
         max_length: int = 512,
         batch_size: int = 1

@@ -19,9 +19,9 @@ def evaluate():
     train_data = dataset["train"]
     print(f"Dataset cargado: {len(train_data)} muestras\n")
     
-    # Crear detector
-    print("Inicializando detector...")
-    detector = AITextDetector(model_name="gpt2", device="cpu")
+    # Crear detector con modelo ligero
+    print("Inicializando detector (modelo: distilgpt2)...")
+    detector = AITextDetector(model_name="distilgpt2", device="cpu")
     
     # Contadores para métricas
     TP = 0  # Verdaderos positivos: AI detectado como AI
