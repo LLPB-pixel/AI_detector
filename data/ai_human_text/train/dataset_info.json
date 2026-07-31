@@ -1,0 +1,56 @@
+{
+  "builder_name": "csv",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "ai-and-human-generated-text",
+  "dataset_size": 42874141,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/Ateeqq/AI-and-Human-Generated-Text@e0627b3f39fe0a27725889239067868797a4db40/train.csv": {
+      "num_bytes": 33881850,
+      "checksum": null
+    },
+    "hf://datasets/Ateeqq/AI-and-Human-Generated-Text@e0627b3f39fe0a27725889239067868797a4db40/test.csv": {
+      "num_bytes": 8735678,
+      "checksum": null
+    }
+  },
+  "download_size": 42617528,
+  "features": {
+    "title": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "abstract": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "label": {
+      "dtype": "int64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 85491669,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 34082667,
+      "num_examples": 22930,
+      "dataset_name": "ai-and-human-generated-text"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 8791474,
+      "num_examples": 5732,
+      "dataset_name": "ai-and-human-generated-text"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}
