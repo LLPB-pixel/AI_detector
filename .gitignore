@@ -2,7 +2,7 @@ requirements.txt
 README.md
 
 # Data
-
+data/
 
 # Python
 __pycache__/
