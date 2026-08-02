@@ -1,18 +1,29 @@
-requirements.txt
-
-# Data
-data/
-
 # Python
 __pycache__/
 *.py[cod]
-*.pyc[cod]
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+
 # Virtual environments
 venv/
 .venv/
 env/
-
-# Environment variables
 .env
 
-DATASETS.md
+# Data (downloaded datasets)
+data/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store

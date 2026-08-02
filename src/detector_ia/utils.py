@@ -2,7 +2,8 @@
 Funciones utilitarias para el detector de IA.
 """
 
-from typing import List, Optional, Dict
+from __future__ import annotations
+
 import re
 import string
 
@@ -29,36 +30,35 @@ def preprocess_text(text: str) -> str:
     return text
 
 
-def split_text(text: str, max_length: int = 512, overlap: int = 50) -> List[str]:
+def split_text(text: str, max_length: int = 512, overlap: int = 50) -> list[str]:
     """
     Divide un texto largo en fragmentos superpuestos.
-    
+
     Args:
         text: Texto a dividir
         max_length: Longitud máxima de cada fragmento (en caracteres)
         overlap: Superposición entre fragmentos (en caracteres)
-        
+
     Returns:
         Lista de fragmentos de texto
     """
     if len(text) <= max_length:
         return [text]
-    
+
     fragments = []
     start = 0
-    
+
     while start < len(text):
         end = min(start + max_length, len(text))
         fragments.append(text[start:end])
-        start = end - overlap
-        
-        if start >= len(text):
+        if end >= len(text):
             break
-    
+        start = end - overlap
+
     return fragments
 
 
-def text_to_sentences(text: str) -> List[str]:
+def text_to_sentences(text: str) -> list[str]:
     """
     Divide un texto en oraciones.
     
@@ -74,7 +74,7 @@ def text_to_sentences(text: str) -> List[str]:
     return [s.strip() for s in sentences if s.strip()]
 
 
-def generate_sample_texts() -> Dict[str, List[str]]:
+def generate_sample_texts() -> dict[str, list[str]]:
     """
     Genera textos de ejemplo para pruebas.
     
@@ -82,39 +82,39 @@ def generate_sample_texts() -> Dict[str, List[str]]:
         Diccionario con textos humanos y de IA de ejemplo
     """
     human_texts = [
-        "El otro día fui al parque con mis amigos. Hacía mucho sol y decidimos tomar un helado. "
-        "Fue una tarde muy agradable.",
+        ("El otro día fui al parque con mis amigos. Hacía mucho sol y decidimos tomar un helado. "
+        "Fue una tarde muy agradable."),
         
-        "La reunión de equipo fue productiva. Discutimos varios puntos importantes del proyecto y "
-        "tomamos decisiones clave para el siguiente trimestre.",
+        ("La reunión de equipo fue productiva. Discutimos varios puntos importantes del proyecto y "
+        "tomamos decisiones clave para el siguiente trimestre."),
         
-        "Me encanta leer libros de ciencia ficción. Recientemente terminé una novela de Isaac Asimov "
-        "que me dejó pensando durante días.",
+        ("Me encanta leer libros de ciencia ficción. Recientemente terminé una novela de Isaac Asimov "
+        "que me dejó pensando durante días."),
         
-        "El clima en Barcelona es muy variable. Un día hace sol y al siguiente puede llover sin parar. "
-        "Por eso siempre llevo paraguas en la mochila.",
+        ("El clima en Barcelona es muy variable. Un día hace sol y al siguiente puede llover sin parar. "
+        "Por eso siempre llevo paraguas en la mochila."),
         
-        "Ayer cociné pasta para la cena. Usé una receta nueva que encontré en internet y quedó "
-        "deliciosa. Mis compañeros de piso quedaron impresionados."
+        ("Ayer cociné pasta para la cena. Usé una receta nueva que encontré en internet y quedó "
+        "deliciosa. Mis compañeros de piso quedaron impresionados.")
     ]
     
     # Textos que simulan ser generados por IA (patrones típicos)
     ai_texts = [
-        "La inteligencia artificial está transformando radicalmente múltiples industrias en todo el "
+        ("La inteligencia artificial está transformando radicalmente múltiples industrias en todo el "
         "mundo, desde la medicina hasta la manufactura, ofreciendo soluciones innovadoras y "
-        "efectivas para problemas complejos.",
+        "efectivas para problemas complejos."),
         
-        "Es fundamental comprender que los modelos de lenguaje grande representan un avance "
+        ("Es fundamental comprender que los modelos de lenguaje grande representan un avance "
         "significativo en la capacidad de las máquinas para entender y generar texto de manera "
-        "coherente y contextualmente apropiada.",
+        "coherente y contextualmente apropiada."),
         
-        "La implementación de sistemas de detección de texto generado por IA se ha vuelto "
+        ("La implementación de sistemas de detección de texto generado por IA se ha vuelto "
         "cada vez más importante en la era digital actual, donde la distinción entre contenido "
-        "auténtico y sintético puede ser desafiante.",
+        "auténtico y sintético puede ser desafiante."),
         
-        "Los algoritmos de procesamiento de lenguaje natural han alcanzado un nivel de sofisticación "
+        ("Los algoritmos de procesamiento de lenguaje natural han alcanzado un nivel de sofisticación "
         "tal que pueden generar textos que son virtualmente indistinguibles de aquellos "
-        "escritos por humanos en muchas situaciones."
+        "escritos por humanos en muchas situaciones.")
     ]
     
     return {
@@ -123,39 +123,39 @@ def generate_sample_texts() -> Dict[str, List[str]]:
     }
 
 
-def format_analysis_results(analyses: List) -> str:
+def format_analysis_results(analyses: list) -> str:
     """
-    Formatea resultados de análisis para visualización.
-    
+    Format analysis results for display.
+
     Args:
-        analyses: Lista de DetectionAnalysis
-        
+        analyses: List of DetectionAnalysis objects
+
     Returns:
-        String formateado con los resultados
+        Formatted string with the results
     """
     lines = []
     lines.append("=" * 80)
-    lines.append("RESULTADOS DE DETECCIÓN DE IA")
+    lines.append("AI DETECTION RESULTS")
     lines.append("=" * 80)
-    
+
     for i, analysis in enumerate(analyses, 1):
-        lines.append(f"\nTexto {i}:")
-        lines.append(f"  Texto: {analysis.text[:100]}...")
-        lines.append(f"  Perplejidad: {analysis.perplexity:.2f}")
-        lines.append(f"  Resultado: {analysis.result.value.upper()}")
-        lines.append(f"  Confianza: {analysis.confidence:.2%}")
-        lines.append(f"  Explicación: {analysis.explanation}")
-        
+        lines.append(f"\nText {i}:")
+        lines.append(f"  Text: {analysis.text[:100]}...")
+        lines.append(f"  Perplexity: {analysis.perplexity:.2f}")
+        lines.append(f"  Result: {analysis.result.value.upper()}")
+        lines.append(f"  Confidence: {analysis.confidence:.2%}")
+        lines.append(f"  Explanation: {analysis.explanation}")
+
         if analysis.is_too_short:
-            lines.append("  ⚠️  Texto demasiado corto para análisis preciso")
+            lines.append("  Warning: text too short for accurate analysis")
         if analysis.is_empty:
-            lines.append("  ⚠️  Texto vacío")
-    
+            lines.append("  Warning: empty text")
+
     lines.append("\n" + "=" * 80)
     return "\n".join(lines)
 
 
-def calculate_accuracy(detector, human_texts: List[str], ai_texts: List[str]) -> Dict[str, float]:
+def calculate_accuracy(detector, human_texts: list[str], ai_texts: list[str]) -> dict[str, float]:
     """
     Calcula la precisión del detector.
     

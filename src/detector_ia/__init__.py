@@ -1,12 +1,23 @@
 """
-Detector de IA basado en perplejidad de modelos de lenguaje.
+AI text detector based on perplexity and burstiness analysis.
 
-Este paquete proporciona herramientas para detectar texto generado por IA
-mediante el análisis de perplejidad usando modelos de lenguaje preentrenados.
+This package provides tools to detect AI-generated text using perplexity and
+sentence-level burstiness computed with pretrained language models.
 """
 
+from __future__ import annotations
+
+from .ai_detector import AITextDetector, DetectionAnalysis, DetectionResult
+from .burstiness_scorer import BurstinessScorer, split_sentences
 from .perplexity_scorer import PerplexityScorer
-from .ai_detector import AITextDetector
 
 __version__ = "1.0.0"
-__all__ = ["PerplexityScorer", "AITextDetector"]
+
+__all__ = [
+    "AITextDetector",
+    "BurstinessScorer",
+    "DetectionAnalysis",
+    "DetectionResult",
+    "PerplexityScorer",
+    "split_sentences",
+]

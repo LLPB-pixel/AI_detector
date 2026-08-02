@@ -17,7 +17,9 @@
 - [Quick start](#quick-start)
 - [Main API](#main-api)
 - [Evaluation](#evaluation)
+- [Datasets](#datasets)
 - [Project structure](#project-structure)
+- [Testing](#testing)
 - [Supported models](#supported-models)
 - [Limitations](#limitations)
 - [License](#license)
@@ -62,7 +64,10 @@ Combining both signals significantly improves accuracy over a perplexity-only an
 git clone https://github.com/LLPB-pixel/AI_detector.git
 cd AI_detector
 
-# Install dependencies
+# Install in editable mode (recommended for development)
+pip install -e .
+
+# Or install dependencies only
 pip install -r requirements.txt
 ```
 
@@ -73,6 +78,13 @@ pip install -r requirements.txt
 ```bash
 # Install PyTorch with CUDA support (e.g., CUDA 11.8)
 pip install torch --extra-index-url https://download.pytorch.org/whl/cu118
+```
+
+### Development setup
+
+```bash
+pip install -e ".[dev]"   # test and lint tooling
+pytest                    # run the test suite
 ```
 
 ## Quick start
@@ -96,8 +108,7 @@ print(f"Explanation: {result.explanation}")
 ### With burstiness (dual approach)
 
 ```python
-from detector_ia import PerplexityScorer
-from detector_ia.burstiness_scorer import BurstinessScorer
+from detector_ia import BurstinessScorer, PerplexityScorer
 
 scorer = PerplexityScorer()
 burst = BurstinessScorer(scorer)
@@ -106,8 +117,6 @@ analysis = burst.score(text)
 print(f"Burstiness: {analysis['burstiness']:.4f}")
 print(f"Mean per-sentence perplexity: {analysis['mean_ppl']:.2f}")
 ```
-
-> **Import note:** `burstiness_scorer.py` uses relative imports, so it must be imported as a package (`detector_ia.burstiness_scorer`) or from the project's root directory.
 
 ## Main API
 
@@ -125,6 +134,7 @@ Main detector with three-way classification.
 | `human_threshold` | `float` | `10.0` | Lower threshold for human |
 | `min_text_length` | `int` | `20` | Minimum length (characters) for analysis |
 | `use_log_scale` | `bool` | `True` | Compare on a logarithmic scale |
+| `scorer` | `PerplexityScorer \| None` | `None` | Inject a custom scorer (for testing) |
 
 **Methods:**
 
@@ -183,12 +193,12 @@ from detector_ia.utils import (
 
 ## Evaluation
 
-Two scripts evaluate the detector on the [Ateeqq/AI-and-Human-Generated-Text](https://huggingface.co/datasets/Ateeqq/AI-and-Human-Generated-Text) dataset. The dataset is downloaded and cached automatically in `./data/`.
+The package installs two console commands that evaluate the detector on the [Ateeqq/AI-and-Human-Generated-Text](https://huggingface.co/datasets/Ateeqq/AI-and-Human-Generated-Text) dataset. The dataset is downloaded and cached automatically by Hugging Face.
 
 ### Dual approach (perplexity + burstiness)
 
 ```bash
-python evaluate_dual.py
+detector-evaluate-dual --model distilgpt2 --device cpu
 ```
 
 Computes optimal thresholds via percentiles and reports:
@@ -207,7 +217,7 @@ Accuracy:   ...
 ### Perplexity only
 
 ```bash
-python evaluate_perplexity.py
+detector-evaluate-perplexity --model distilgpt2 --device cpu
 ```
 
 ### Quick accuracy check
@@ -223,24 +233,234 @@ accuracy = calculate_accuracy(detector, samples["human"], samples["ai"])
 print(f"Overall accuracy: {accuracy['overall_accuracy']:.2%}")
 ```
 
-### Reference datasets
+## Datasets
 
-See [`DATASETS.md`](DATASETS.md) for a list of recommended public datasets (Hugging Face and GitHub) along with evaluation examples.
+A list of public datasets recommended for testing and evaluating the detector.
+
+| # | Dataset | Source | Size | Format | Notes |
+|---|---------|--------|------|--------|-------|
+| 1 | **Ateeqq/AI-and-Human-Generated-Text** ⭐ | [Hugging Face](https://huggingface.co/datasets/Ateeqq/AI-and-Human-Generated-Text) | Small | Labeled texts | Recommended; used by the evaluation CLIs |
+| 2 | **SuperAnnotate/ai-detector** | [Hugging Face](https://huggingface.co/datasets/SuperAnnotate/ai-detector) | 44k samples | Binary labels | Balanced human/AI |
+| 3 | **Human-vs-AI-Text** | [GitHub](https://github.com/NicolasHHH/Human-vs-AI-Text) | 8k paragraphs | JSON | `0` = human, `1` = AI |
+| 4 | **An Applied Statistics Dataset** | [GitHub](https://github.com/shahidul034/An-Applied-Statistics-Dataset-for-Human-vs-AI-Generated-Answer-Classification) | 200 samples | JSON/CSV | Domain-specific, great for quick tests |
+| 5 | **idajikuu/AI-detection** | [Hugging Face](https://huggingface.co/datasets/idajikuu/AI-detection) | — | Labeled texts | AI-generated text detection |
+| 6 | **AI-GA Dataset** | [GitHub](https://github.com/panagiotisanagnostou/AI-GA) | — | Benchmark | Human vs GPT-3/GPT-4/BARD |
+
+### 1. Ateeqq/AI-and-Human-Generated-Text (recommended)
+
+Human and AI-generated texts (GPT-4, BARD) across genres such as essays, stories, poetry, and Python code. Small and well-labeled, ideal for experimentation.
+
+```python
+from datasets import load_dataset
+from detector_ia import AITextDetector
+
+detector = AITextDetector()
+dataset = load_dataset("Ateeqq/AI-and-Human-Generated-Text")
+
+# Analyze a few samples (field name: "abstract")
+human_texts = [item["abstract"] for item in dataset["train"] if item["label"] == 0][:10]
+for text in human_texts:
+    result = detector.analyze(text)
+    print(f"Human: {result.result.value}, Conf: {result.confidence:.2%}")
+```
+
+### 2. SuperAnnotate/ai-detector
+
+44,000 text pairs (22k human + 22k AI), balanced for binary classification.
+
+```python
+from datasets import load_dataset
+
+dataset = load_dataset("SuperAnnotate/ai-detector")
+# dataset["train"] contains the samples
+```
+
+### 3. Human-vs-AI-Text (GitHub)
+
+4,000 training paragraphs (2,016 human + 1,984 AI) and 4,000 test paragraphs, designed for binary classification.
+
+```bash
+git clone https://github.com/NicolasHHH/Human-vs-AI-Text.git
+# Data is in the repository: train.json and test.json
+```
+
+**JSON structure:**
+
+```json
+{
+  "text": "The text here...",
+  "label": 0
+}
+```
+
+**Use with the detector:**
+
+```python
+import json
+from detector_ia import AITextDetector
+
+detector = AITextDetector()
+
+with open("Human-vs-AI-Text/train.json", encoding="utf-8") as f:
+    data = json.load(f)
+
+for item in data[:20]:
+    result = detector.analyze(item["text"])
+    actual = "human" if item["label"] == 0 else "ai"
+    print(f"Actual: {actual:6} | Predicted: {result.result.value:9} | Conf: {result.confidence:.2%}")
+```
+
+### 4. An Applied Statistics Dataset (GitHub)
+
+200 answers (100 human + 100 AI/ChatGPT) to applied-statistics questions. Domain-specific but very small, ideal for quick tests.
+
+```bash
+git clone https://github.com/shahidul034/An-Applied-Statistics-Dataset-for-Human-vs-AI-Generated-Answer-Classification.git
+```
+
+### 5. idajikuu/AI-detection (Hugging Face)
+
+Dataset focused on AI-generated text detection.
+
+- https://huggingface.co/datasets/idajikuu/AI-detection
+
+### 6. AI-GA Dataset (GitHub)
+
+Academic benchmark dataset for human vs AI text (GPT-3, GPT-4, BARD).
+
+- https://github.com/panagiotisanagnostou/AI-GA
+
+### Downloading datasets manually
+
+**Hugging Face datasets:**
+
+1. Open the dataset link on Hugging Face
+2. Click **Files** to see the available files
+3. Download the CSV/JSON/Parquet files manually
+4. Place them in your project, e.g. under `./data/`
+
+**GitHub datasets:**
+
+1. Open the repository link
+2. Click **Code → Download ZIP**
+3. Extract the ZIP into your project
+4. Use the files directly
+
+### Evaluating against any dataset
+
+Use this script to evaluate the detector against any dataset with `text`/`label` columns (JSON or CSV):
+
+```python
+"""Evaluate the AI detector against any JSON or CSV dataset."""
+import argparse
+import csv
+import json
+
+from detector_ia import AITextDetector
+
+
+def load_json(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_csv(path):
+    with open(path, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Evaluate the AI detector on a dataset")
+    parser.add_argument("--path", required=True, help="Path to the dataset file")
+    parser.add_argument("--format", choices=["json", "csv"], default="json")
+    parser.add_argument("--text-key", default="text")
+    parser.add_argument("--label-key", default="label")
+    parser.add_argument("--limit", type=int, default=None)
+    args = parser.parse_args()
+
+    dataset = load_json(args.path) if args.format == "json" else load_csv(args.path)
+    if args.limit:
+        dataset = dataset[: args.limit]
+
+    detector = AITextDetector(device="cpu")
+    correct = total = 0
+
+    for item in dataset:
+        text = item[args.text_key]
+        label = item[args.label_key]
+        actual = "human" if str(label).lower() in ("0", "human") else "ai"
+        predicted = detector.analyze(text).result.value
+        total += 1
+        if predicted == actual:
+            correct += 1
+
+    print(f"Accuracy: {correct / total:.2%} ({correct}/{total})")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+```bash
+# JSON dataset
+python evaluate_detector.py --path ./data/train.json --format json --limit 100
+
+# CSV dataset
+python evaluate_detector.py --path ./data/dataset.csv --format csv
+```
+
+### Recommendations
+
+- **Smallest dataset:** An Applied Statistics Dataset (200 samples) — fastest to run
+- **Balanced dataset:** `Ateeqq/AI-and-Human-Generated-Text` — small and well-labeled
+- **Full evaluation:** `SuperAnnotate/ai-detector` (44k samples) — thorough benchmarks
+
+### Security notes
+
+- Only download datasets from trustworthy sources
+- Always review content before use
+- Verify dataset licenses before incorporating them
+- The datasets listed above come from reputable public/academic repositories
+
+### Additional resources
+
+- [Hugging Face Datasets](https://huggingface.co/datasets) — thousands of public datasets
+- [Kaggle Datasets](https://www.kaggle.com/datasets) — search for "AI generated text"
+- [Papers With Code – Text Generation](https://paperswithcode.com/task/text-generation) — academic datasets
 
 ## Project structure
 
 ```
 detector_ia/
-├── __init__.py               # Exports: AITextDetector, PerplexityScorer
-├── ai_detector.py            # Main detector (AITextDetector)
-├── perplexity_scorer.py      # Perplexity calculation (PerplexityScorer)
-├── burstiness_scorer.py      # Sentence-to-sentence variability (BurstinessScorer)
-├── utils.py                  # Utility and evaluation functions
-├── evaluate_dual.py          # Dual evaluation (perplexity + burstiness)
-├── evaluate_perplexity.py    # Perplexity-only evaluation
-├── requirements.txt          # Dependencies
-├── DATASETS.md               # Reference datasets
-└── data/                     # Downloaded datasets (ignored by git)
+├── src/
+│   └── detector_ia/           # Main package
+│       ├── __init__.py        # Public API exports
+│       ├── ai_detector.py     # Main detector (AITextDetector)
+│       ├── perplexity_scorer.py   # Perplexity calculation
+│       ├── burstiness_scorer.py   # Sentence-to-sentence variability
+│       ├── utils.py           # Utility and evaluation helpers
+│       └── evaluation/
+│           ├── __init__.py
+│           ├── dual.py        # Dual evaluation (perplexity + burstiness)
+│           └── perplexity.py  # Perplexity-only evaluation
+├── tests/
+│   ├── conftest.py            # Shared fixtures
+│   ├── test_ai_detector.py
+│   ├── test_burstiness_scorer.py
+│   ├── test_perplexity_scorer.py
+│   └── test_utils.py
+├── pyproject.toml             # Packaging, deps, CLI entry points
+├── requirements.txt           # Dependency pin (mirrors pyproject)
+├── README.md
+└── data/                      # Downloaded datasets (ignored by git)
+```
+
+## Testing
+
+```bash
+pip install -e ".[dev]"
+pytest                        # runs the full suite
+pytest tests/test_ai_detector.py -v
 ```
 
 ## Supported models

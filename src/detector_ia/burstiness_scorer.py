@@ -6,17 +6,15 @@ El burstiness mide la variabilidad de la perplejidad entre oraciones.
 - Texto generado con IA: baja variabilidad (burstiness bajo)
 """
 
+from __future__ import annotations
+
 import re
 import statistics
-from typing import List, Dict
 
-try:
-    from .perplexity_scorer import PerplexityScorer
-except (ImportError, ValueError):
-    from perplexity_scorer import PerplexityScorer
+from .perplexity_scorer import PerplexityScorer
 
 
-def split_sentences(text: str) -> List[str]:
+def split_sentences(text: str) -> list[str]:
     """Divide texto en oraciones usando puntos, signos de interrogación y exclamación."""
     sentences = re.split(r'(?<=[.!?])\s+', text.strip())
     return [s for s in sentences if s.strip()]
@@ -38,7 +36,7 @@ class BurstinessScorer:
         """
         self.ppl_scorer = perplexity_scorer
     
-    def score(self, text: str) -> Dict:
+    def score(self, text: str) -> dict:
         """
         Calcula el burstiness de un texto.
         

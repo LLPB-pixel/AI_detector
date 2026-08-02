@@ -8,8 +8,23 @@ no contienen ninguna keyword sospechosa.
 Este módulo proporciona una implementación optimizada para detección de IA.
 """
 
-from typing import Optional, List, Tuple
+from __future__ import annotations
+
+import importlib.util
+import logging
 import warnings
+
+logger = logging.getLogger(__name__)
+
+
+def _check_optional_dependencies() -> None:
+    """Raise a helpful error if the optional torch/transformers deps are missing."""
+    missing = [name for name in ("torch", "transformers") if importlib.util.find_spec(name) is None]
+    if missing:
+        raise ImportError(
+            "Perplexity calculation requires transformers and torch. "
+            "Install with: pip install torch transformers"
+        )
 
 
 class PerplexityScorer:
@@ -26,20 +41,14 @@ class PerplexityScorer:
     def __init__(
         self, 
         model_name: str = "distilgpt2", 
-        device: Optional[str] = None,
+        device: str | None = None,
         max_length: int = 512,
         batch_size: int = 1
     ):
         # Import diferido: esta clase es opcional y pesada (torch + transformers)
-        try:
-            import torch
-            from transformers import GPT2LMHeadModel, GPT2TokenizerFast
-        except ImportError as e:
-            raise ImportError(
-                "Perplexity calculation requires transformers and torch. "
-                "Install with: pip install torch transformers"
-            ) from e
-        
+        _check_optional_dependencies()
+        import torch
+
         # Configurar dispositivo
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -62,15 +71,15 @@ class PerplexityScorer:
         """Carga el tokenizador y modelo."""
         from transformers import GPT2LMHeadModel, GPT2TokenizerFast
         
-        print(f"  Cargando tokenizador '{self.model_name}'...")
+        logger.info("Cargando tokenizador '%s'...", self.model_name)
         self.tokenizer = GPT2TokenizerFast.from_pretrained(self.model_name)
-        print(f"  Cargando modelo '{self.model_name}' en {self.device} (puede tardar)...")
+        logger.info("Cargando modelo '%s' en %s (puede tardar)...", self.model_name, self.device)
         self.model = GPT2LMHeadModel.from_pretrained(
             self.model_name, 
             low_cpu_mem_usage=True
         ).to(self.device)
         self.model.eval()
-        print("  Modelo cargado correctamente.")
+        logger.info("Modelo cargado correctamente.")
     
     def score(self, text: str) -> float:
         """
@@ -108,7 +117,7 @@ class PerplexityScorer:
         
         return perplexity
     
-    def batch_score(self, texts: List[str]) -> List[float]:
+    def batch_score(self, texts: list[str]) -> list[float]:
         """
         Calcula la perplexity para múltiples textos.
         
