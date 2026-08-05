@@ -1,0 +1,148 @@
+CONCEPTOS APLICADOS EN ESTE REPOSITORIO
+========================================
+
+Este repositorio implementa un detector de texto generado por inteligencia
+artificial. La idea central es analizar dos señales lingüísticas calculadas
+con un modelo de lenguaje preentrenado para distinguir texto humano de texto
+generado por IA. A continuación se explican los conceptos clave.
+
+---------------------------------------------------------------------
+1. MODELO DE LENGUAJE (Language Model)
+---------------------------------------------------------------------
+Un modelo de lenguaje (aquí se usa distilgpt2, una versión ligera de GPT-2)
+es un modelo entrenado para predecir la probabilidad de que aparezca una
+palabra (token) dado el contexto anterior. Al haber sido entrenado con
+enormes cantidades de texto, "sabe" qué secuencias de palabras son naturales
+y cuáles no.
+
+El modelo asigna una probabilidad a cada token de una secuencia. Si la
+secuencia es predecible, las probabilidades son altas; si es sorprendente,
+las probabilidades son bajas.
+
+---------------------------------------------------------------------
+2. PERPLEXITY (Perplejidad)
+---------------------------------------------------------------------
+La perplejidad es una métrica que mide CUÁN SORPRENDIDO se queda el modelo
+de lenguaje al leer un texto. Se calcula como:
+
+    perplexity = exp(loss)
+
+donde loss es la cross-entropy (entropía cruzada) media por token.
+
+Interpretación intuitiva: si la perplejidad de un texto es N, es como si en
+cada palabra el modelo tuviera que "adivinar" entre N posibilidades iguales.
+Un texto con perplejidad baja es predecible; con perplejidad alta, resulta
+sorprendente o incoherente para el modelo.
+
+En la detección de IA:
+- El texto humano suele tener perplejidad BAJA (predecible para el modelo).
+- El texto generado por IA puede tener perplejidad variable, a menudo baja,
+  porque el propio modelo generador tiende a producir texto muy predecible.
+- Los ataques adversariales (texto optimizado automáticamente) tienen
+  perplejidad MUY alta.
+
+La perplejidad por sí sola no basta para distinguir bien humano de IA, por
+eso el repositorio combina dos señales (dual approach).
+
+---------------------------------------------------------------------
+3. BURSTINESS (Ráfaga / Explosividad)
+---------------------------------------------------------------------
+El burstiness mide la VARIABILIDAD de la perplejidad entre las oraciones de
+un texto. Para calcularlo, el texto se divide en oraciones y se puntúa la
+perplejidad de cada una. Luego se calcula el coeficiente de variación:
+
+    burstiness = std_ppl / mean_ppl
+
+es decir, la desviación estándar de las perplejidades por oración dividida
+entre la perplejidad media.
+
+Interpretación intuitiva: mide cuánto "sube y baja" la dificultad del texto
+de una frase a otra, es decir, su irregularidad rítmica.
+
+Por qué es útil para detectar IA:
+- El texto humano es IRREGULAR: hay frases cortas y largas, con distintas
+  estructuras y vocabulario, por lo que la perplejidad varía mucho de una
+  oración a otra => burstiness ALTO.
+- El texto generado por IA tiende a ser MUY UNIFORME y consistente: todas
+  las oraciones tienen un estilo y longitud parecidos, con una perplejidad
+  muy similar entre ellas => burstiness BAJO.
+
+Por eso, un texto con perplejidad baja Y burstiness bajo delata una
+"consistencia artificial" típica de la IA, mientras que el humano suele
+tener perplejidad baja pero burstiness alto (variación natural).
+
+---------------------------------------------------------------------
+4. ENTOROPÍA CRUZADA (Cross-Entropy)
+---------------------------------------------------------------------
+Es la métrica de pérdida (loss) que cuantifica qué tan bien predice el
+modelo cada token. Si el modelo asigna alta probabilidad al token correcto,
+la pérdida es baja. Al promediarse por token y aplicarse exp(), se obtiene
+la perplejidad.
+
+---------------------------------------------------------------------
+5. TOKENIZACIÓN
+---------------------------------------------------------------------
+Antes de entrar al modelo, el texto se convierte en tokens (subpalabras o
+palabras) mediante un tokenizador. El modelo trabaja sobre secuencias de
+IDs de tokens, no sobre caracteres. En este repositorio se usa
+GPT2TokenizerFast.
+
+---------------------------------------------------------------------
+6. CLASIFICACIÓN POR UMBRALES (Thresholds)
+---------------------------------------------------------------------
+El detector decide si un texto es humano, IA o incierto comparando la
+perplejidad (y el burstiness) con unos umbrales ajustables:
+
+- HUMANO: perplejidad baja (por debajo de human_threshold)
+- IA: perplejidad muy alta (por encima de ai_threshold) y/o burstiness bajo
+- INCIERTO (UNCERTAIN): valores intermedios
+
+Además se asigna una confianza (0-1) según la distancia al umbral y se usa
+escala logarítmica para mejorar la discriminación. Los textos muy cortos
+(<20 caracteres) o vacíos no se analizan.
+
+---------------------------------------------------------------------
+7. CALIBRACIÓN DE UMBRALES (Calibration)
+---------------------------------------------------------------------
+Con textos etiquetados como humanos y de IA de ejemplo, el sistema ajusta
+los umbrales automáticamente (punto medio entre las medias, con márgenes de
+seguridad basados en la desviación estándar, o percentiles en el caso de la
+evaluación dual). Esto permite adaptar el detector al dominio de datos.
+
+---------------------------------------------------------------------
+8. EVALUACIÓN CON MÉTRICAS CLÁSICAS
+---------------------------------------------------------------------
+Para medir la calidad del detector se usan las métricas estándar de
+clasificación sobre conjuntos de datos etiquetados:
+
+- TP (Verdaderos positivos): IA detectado como IA
+- FP (Falsos positivos): humano detectado como IA
+- FN (Falsos negativos): IA detectado como humano
+- TN (Verdaderos negativos): humano detectado como humano
+
+A partir de ellos se calculan:
+- Precision = TP / (TP + FP): de todo lo que marcamos como IA, cuánto es
+  realmente IA.
+- Recall = TP / (TP + FN): de todo el texto IA real, cuánto detectamos.
+- F1-score: media armónica de precisión y recall.
+- Accuracy = (TP + TN) / total: porcentaje total de aciertos.
+
+---------------------------------------------------------------------
+9. PROCESAMIENTO DE TEXTO (Preprocessing)
+---------------------------------------------------------------------
+Incluye utilidades para normalizar espacios, eliminar caracteres de
+control, dividir el texto en oraciones (mediante regex sobre . ! ?) y
+dividir textos largos en fragmentos superpuestos para poder procesarlos con
+la longitud máxima de tokens del modelo.
+
+---------------------------------------------------------------------
+RESUMEN DE LA LÓGICA DEL DETECTOR
+---------------------------------------------------------------------
+1. Se calcula la perplejidad global del texto con un modelo de lenguaje.
+2. Se divide en oraciones, se puntúa cada una y se calcula el burstiness
+   (std_ppl / mean_ppl).
+3. Se comparan ambas señales con umbrales (posiblemente calibrados).
+4. Veredicto: humano (perplejidad baja, burstiness alto), IA (perplejidad
+   baja + burstiness bajo, o perplejidad muy alta) o incierto.
+5. La combinación de perplejidad + burstiness mejora la precisión frente a
+   usar solo perplejidad.
