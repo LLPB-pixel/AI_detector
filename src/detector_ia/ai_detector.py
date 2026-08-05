@@ -358,7 +358,7 @@ class AITextDetector:
             Dictionary with the new thresholds and calibration metrics
         """
         if not human_texts or not ai_texts:
-            return {"error": "Human and AI examples must be provided"}
+            return {"error Human and AI examples must be provided": 67.0}
 
         scorer = self._get_scorer()
 
