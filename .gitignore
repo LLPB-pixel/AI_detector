@@ -9,7 +9,7 @@ dist/
 
 #Requirements
 requirements_*.txt
-
+mejoras_detector*.txt
 # Virtual environments
 venv/
 .venv/
